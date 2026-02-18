@@ -690,11 +690,11 @@
                     scales: {
                         x: {
                             grid:{color:'rgba(255,255,255,0.04)'},
-                            ticks:{color:'#888',font:{family:'JetBrains Mono',size:9},autoSkip:true,maxTicksLimit:6,maxRotation:0,callback:function(v){return '$'+this.getLabelForValue(v);}}
+                            ticks:{color:'#bbb',font:{family:'JetBrains Mono',size:9},autoSkip:true,maxTicksLimit:6,maxRotation:0,callback:function(v){return '$'+this.getLabelForValue(v);}}
                         },
                         y: {
                             grid:{color:'rgba(255,255,255,0.04)'},
-                            ticks:{color:'#888',font:{family:'JetBrains Mono',size:9},callback:(v)=>v>=1000?(v/1000).toFixed(1)+'K':v.toFixed(1)}
+                            ticks:{color:'#bbb',font:{family:'JetBrains Mono',size:9},callback:(v)=>v>=1000?(v/1000).toFixed(1)+'K':v.toFixed(1)}
                         }
                     }
                 }
