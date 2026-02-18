@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>현물 vs 선물 오더북 비교 | Herdvibe</title>
-    <meta property="og:title" content="현물 vs 선물 오더북 비교 | Herdvibe">
-    <meta property="og:description" content="BTC/ETH/SOL 현물·선물 오더북 비교 — Basis, 유동성, Imbalance 분석">
+    <title>Spot Orderbook Depth | Herdvibe</title>
+    <meta property="og:title" content="Spot Orderbook Depth | Herdvibe">
+    <meta property="og:description" content="BTC/ETH/SOL 현물 오더북 통합 뎁스 차트 - Binance, Bybit, Kraken">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,12 +25,9 @@
             --border-color: #2a2a2a;
             --bid-color: #00d4aa;
             --ask-color: #ff4757;
-            --spot-color: #4dabf7;
-            --perp-color: #ffd43b;
             --binance-color: #F0B90B;
             --bybit-color: #F7931A;
             --kraken-color: #7B61FF;
-            --hyperliquid-color: #00E5A0;
         }
 
         html, body { overflow-x: hidden; }
@@ -63,8 +60,13 @@
             gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
         }
 
-        .control-group { display: flex; align-items: center; gap: 6px; }
-        .control-label { font-size: 0.72rem; color: var(--text-secondary); }
+        .control-group {
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        .control-label {
+            font-size: 0.72rem; color: var(--text-secondary);
+        }
 
         .ctrl-btn {
             font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
@@ -98,117 +100,95 @@
 
         .auto-toggle.on { border-color: var(--bid-color); color: var(--bid-color); }
 
-        /* Section */
-        .section {
+        /* Summary */
+        .summary-row {
+            display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;
+            margin-bottom: 20px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+        }
+
+        .summary-item { display: flex; align-items: center; gap: 6px; }
+        .summary-item .label { color: var(--text-muted); font-size: 0.7rem; }
+
+        /* Chart */
+        .chart-section {
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 20px; margin-bottom: 20px; position: relative;
+        }
+
+        .chart-container { position: relative; height: 450px; width: 100%; }
+
+        .chart-legend {
+            display: flex; gap: 15px; justify-content: center;
+            margin-bottom: 12px; flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 0.72rem; color: var(--text-secondary);
+        }
+
+        .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+        /* Exchange Status */
+        .exchange-status {
+            display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .ex-status {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 0.7rem; font-family: 'JetBrains Mono', monospace;
+        }
+
+        .ex-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .ex-dot.ok { background: var(--bid-color); }
+        .ex-dot.fail { background: var(--ask-color); }
+        .ex-dot.loading { background: var(--binance-color); animation: pulse 1s infinite; }
+
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* Volume Breakdown */
+        .breakdown-section {
             background: var(--bg-secondary); border: 1px solid var(--border-color);
             border-radius: 12px; padding: 20px; margin-bottom: 20px;
         }
 
-        .section-header { text-align: center; margin-bottom: 15px; }
-        .section-title { font-size: 1.1rem; font-weight: 600; }
-        .section-desc { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
-
-        /* Basis Cards */
-        .basis-cards {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 12px; margin-bottom: 20px;
+        .breakdown-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
         }
 
-        .basis-card {
-            background: var(--bg-secondary); border: 1px solid var(--border-color);
-            border-radius: 10px; padding: 16px; text-align: center;
-        }
-
-        .bc-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
-        .bc-value { font-family: 'JetBrains Mono', monospace; font-size: 1.3rem; font-weight: 600; }
-        .bc-sub { font-size: 0.7rem; color: var(--text-secondary); margin-top: 4px; }
-
-        /* Dual chart */
-        .dual-charts {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
-        }
-
-        .chart-panel {
+        .breakdown-card {
             background: var(--bg-tertiary); border: 1px solid var(--border-color);
-            border-radius: 10px; padding: 15px;
+            border-radius: 8px; padding: 14px;
         }
 
-        .chart-panel-title {
-            text-align: center; font-size: 0.85rem; font-weight: 600; margin-bottom: 10px;
+        .bk-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 10px;
         }
 
-        .chart-container { position: relative; height: 300px; width: 100%; }
+        .bk-name { font-size: 0.8rem; font-weight: 600; }
+        .bk-pct { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-secondary); }
 
-        /* Imbalance */
-        .imbalance-row {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+        .bk-bar {
+            height: 6px; border-radius: 3px; background: var(--bg-primary);
+            overflow: hidden; margin-bottom: 8px;
         }
 
-        .imbalance-card {
-            background: var(--bg-tertiary); border: 1px solid var(--border-color);
-            border-radius: 10px; padding: 16px;
-        }
+        .bk-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
 
-        .imb-title { text-align: center; font-size: 0.8rem; font-weight: 600; margin-bottom: 12px; }
-
-        .imb-bar-wrap { position: relative; height: 24px; border-radius: 12px; overflow: hidden; background: var(--bg-primary); margin-bottom: 8px; }
-        .imb-bar-bid { position: absolute; left: 0; top: 0; height: 100%; background: var(--bid-color); border-radius: 12px 0 0 12px; transition: width 0.4s; }
-        .imb-bar-ask { position: absolute; right: 0; top: 0; height: 100%; background: var(--ask-color); border-radius: 0 12px 12px 0; transition: width 0.4s; }
-
-        .imb-labels {
+        .bk-stats {
             display: flex; justify-content: space-between;
-            font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
         }
 
-        .imb-labels .bid-lbl { color: var(--bid-color); }
-        .imb-labels .ask-lbl { color: var(--ask-color); }
-
-        /* Liquidity compare */
-        .liq-compare {
-            display: grid; grid-template-columns: 1fr auto 1fr; gap: 15px; align-items: center;
-        }
-
-        .liq-box {
-            background: var(--bg-tertiary); border: 1px solid var(--border-color);
-            border-radius: 10px; padding: 16px; text-align: center;
-        }
-
-        .liq-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
-        .liq-val { font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 600; }
-        .liq-sub { font-size: 0.7rem; color: var(--text-secondary); margin-top: 4px; }
-
-        .liq-ratio {
-            text-align: center; padding: 10px;
-        }
-
-        .liq-ratio .ratio-num {
-            font-family: 'JetBrains Mono', monospace; font-size: 1.6rem; font-weight: 700;
-            color: var(--perp-color);
-        }
-
-        .liq-ratio .ratio-label { font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; }
-
-        /* Market Signal */
-        .signal-box {
-            background: var(--bg-tertiary); border: 1px solid var(--border-color);
-            border-radius: 10px; padding: 20px; text-align: center;
-        }
-
-        .signal-icon { font-size: 1.5rem; margin-bottom: 8px; }
-        .signal-text {
-            font-size: 0.9rem; font-weight: 500; line-height: 1.6;
-            max-width: 600px; margin: 0 auto;
-        }
-
-        .signal-tag {
-            display: inline-block; padding: 4px 12px; border-radius: 20px;
-            font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
-            font-weight: 600; margin-top: 10px;
-        }
-
-        .signal-tag.bullish { background: rgba(0,212,170,0.15); color: var(--bid-color); border: 1px solid rgba(0,212,170,0.3); }
-        .signal-tag.bearish { background: rgba(255,71,87,0.15); color: var(--ask-color); border: 1px solid rgba(255,71,87,0.3); }
-        .signal-tag.neutral { background: rgba(136,136,136,0.15); color: var(--text-secondary); border: 1px solid rgba(136,136,136,0.3); }
+        .bk-bid { color: var(--bid-color); }
+        .bk-ask { color: var(--ask-color); }
 
         /* Share */
         .share-bar { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
@@ -234,28 +214,22 @@
         }
         .footer a { color: var(--bid-color); text-decoration: none; }
 
-        .updated-time { text-align: center; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 15px; font-family: 'JetBrains Mono', monospace; }
-
         @media (max-width: 768px) {
             .container { padding: 10px 12px 30px; }
             .header h1 { font-size: 1.3rem; }
-            .dual-charts { grid-template-columns: 1fr; }
-            .imbalance-row { grid-template-columns: 1fr; }
-            .liq-compare { grid-template-columns: 1fr; }
-            .chart-container { height: 250px; }
+            .chart-container { height: 350px; }
         }
 
         @media (max-width: 480px) {
-            .chart-container { height: 200px; }
-            .basis-cards { grid-template-columns: repeat(2, 1fr); }
+            .chart-container { height: 280px; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header class="header">
-            <h1>현물 vs 선물 오더북 비교</h1>
-            <p>Basis · 유동성 · Imbalance 실시간 분석</p>
+            <h1>현물 통합 오더북 뎁스 차트</h1>
+            <p>Binance · Bybit · Kraken</p>
         </header>
 
         <!-- Controls -->
@@ -279,122 +253,48 @@
             </button>
             <div class="control-group">
                 <span class="control-label">자동:</span>
-                <button class="auto-toggle on" data-interval="0" id="autoOff">OFF</button>
+                <button class="auto-toggle" data-interval="0" id="autoOff">OFF</button>
                 <button class="auto-toggle" data-interval="5">5s</button>
                 <button class="auto-toggle" data-interval="10">10s</button>
                 <button class="auto-toggle" data-interval="30">30s</button>
             </div>
         </div>
 
-        <div class="updated-time" id="updatedTime">데이터 로딩 중...</div>
-
-        <!-- Basis Cards -->
-        <div class="basis-cards">
-            <div class="basis-card">
-                <div class="bc-label">Spot Mid</div>
-                <div class="bc-value" style="color:var(--spot-color)" id="spotMid">-</div>
-                <div class="bc-sub">현물 중간가</div>
-            </div>
-            <div class="basis-card">
-                <div class="bc-label">Perp Mid</div>
-                <div class="bc-value" style="color:var(--perp-color)" id="perpMid">-</div>
-                <div class="bc-sub">선물 중간가</div>
-            </div>
-            <div class="basis-card">
-                <div class="bc-label">Basis</div>
-                <div class="bc-value" id="basisValue">-</div>
-                <div class="bc-sub" id="basisLabel">-</div>
-            </div>
-            <div class="basis-card">
-                <div class="bc-label">Basis %</div>
-                <div class="bc-value" id="basisPct">-</div>
-                <div class="bc-sub" id="basisType">-</div>
-            </div>
+        <!-- Exchange Status -->
+        <div class="exchange-status" id="exchangeStatus">
+            <div class="ex-status"><div class="ex-dot" id="dot-binance"></div><span style="color:var(--binance-color)">Binance</span></div>
+            <div class="ex-status"><div class="ex-dot" id="dot-bybit"></div><span style="color:var(--bybit-color)">Bybit</span></div>
+            <div class="ex-status"><div class="ex-dot" id="dot-kraken"></div><span style="color:var(--kraken-color)">Kraken</span></div>
         </div>
 
-        <!-- Dual Depth Charts -->
-        <section class="section">
-            <div class="section-header">
-                <h2 class="section-title">Depth Chart 비교</h2>
-                <p class="section-desc">좌: 현물 · 우: 선물 — 동일 가격 범위</p>
+        <!-- Summary -->
+        <div class="summary-row" id="summaryRow">
+            <div class="summary-item"><span class="label">Mid Price</span><span id="midPrice">-</span></div>
+            <div class="summary-item"><span class="label">Spread</span><span id="spread">-</span></div>
+            <div class="summary-item"><span class="label">Total Bids</span><span id="totalBids" style="color:var(--bid-color)">-</span></div>
+            <div class="summary-item"><span class="label">Total Asks</span><span id="totalAsks" style="color:var(--ask-color)">-</span></div>
+            <div class="summary-item"><span class="label">Updated</span><span id="lastUpdate" style="color:var(--text-muted)">-</span></div>
+        </div>
+
+        <!-- Chart -->
+        <section class="chart-section">
+            <div class="chart-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:var(--binance-color)"></div>Binance</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--bybit-color)"></div>Bybit</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--kraken-color)"></div>Kraken</div>
             </div>
-            <div class="dual-charts">
-                <div class="chart-panel">
-                    <div class="chart-panel-title" style="color:var(--spot-color)">Spot</div>
-                    <div class="chart-container"><canvas id="spotChart"></canvas></div>
-                </div>
-                <div class="chart-panel">
-                    <div class="chart-panel-title" style="color:var(--perp-color)">Perp</div>
-                    <div class="chart-container"><canvas id="perpChart"></canvas></div>
-                </div>
+            <div class="chart-container">
+                <canvas id="depthChart"></canvas>
             </div>
         </section>
 
-        <!-- Imbalance -->
-        <section class="section">
-            <div class="section-header">
-                <h2 class="section-title">Bid-Ask Imbalance</h2>
-                <p class="section-desc">매수/매도 물량 비율 — 50% 이상이 우위</p>
+        <!-- Volume Breakdown -->
+        <section class="breakdown-section">
+            <div style="text-align:center; margin-bottom:15px;">
+                <h2 style="font-size:1.1rem; font-weight:600;">거래소별 유동성</h2>
+                <p style="font-size:0.75rem; color:var(--text-muted);">범위 내 총 매수/매도 물량 비교</p>
             </div>
-            <div class="imbalance-row">
-                <div class="imbalance-card">
-                    <div class="imb-title" style="color:var(--spot-color)">Spot</div>
-                    <div class="imb-bar-wrap">
-                        <div class="imb-bar-bid" id="spotBidBar"></div>
-                        <div class="imb-bar-ask" id="spotAskBar"></div>
-                    </div>
-                    <div class="imb-labels">
-                        <span class="bid-lbl" id="spotBidPct">Bid -</span>
-                        <span class="ask-lbl" id="spotAskPct">Ask -</span>
-                    </div>
-                </div>
-                <div class="imbalance-card">
-                    <div class="imb-title" style="color:var(--perp-color)">Perp</div>
-                    <div class="imb-bar-wrap">
-                        <div class="imb-bar-bid" id="perpBidBar"></div>
-                        <div class="imb-bar-ask" id="perpAskBar"></div>
-                    </div>
-                    <div class="imb-labels">
-                        <span class="bid-lbl" id="perpBidPct">Bid -</span>
-                        <span class="ask-lbl" id="perpAskPct">Ask -</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Liquidity Compare -->
-        <section class="section">
-            <div class="section-header">
-                <h2 class="section-title">유동성 비교</h2>
-                <p class="section-desc">범위 내 총 물량 (Bid + Ask)</p>
-            </div>
-            <div class="liq-compare">
-                <div class="liq-box">
-                    <div class="liq-label">Spot</div>
-                    <div class="liq-val" style="color:var(--spot-color)" id="spotTotalVol">-</div>
-                    <div class="liq-sub" id="spotTotalUsd">-</div>
-                </div>
-                <div class="liq-ratio">
-                    <div class="ratio-num" id="liqRatio">-</div>
-                    <div class="ratio-label">Perp / Spot</div>
-                </div>
-                <div class="liq-box">
-                    <div class="liq-label">Perp</div>
-                    <div class="liq-val" style="color:var(--perp-color)" id="perpTotalVol">-</div>
-                    <div class="liq-sub" id="perpTotalUsd">-</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Market Signal -->
-        <section class="section">
-            <div class="section-header">
-                <h2 class="section-title">시장 해석</h2>
-                <p class="section-desc">오더북 데이터 기반 자동 분석</p>
-            </div>
-            <div class="signal-box" id="signalBox">
-                <div class="signal-text" id="signalText">데이터를 불러오는 중입니다...</div>
-            </div>
+            <div class="breakdown-grid" id="breakdownGrid"></div>
         </section>
 
         <!-- Share -->
@@ -422,8 +322,8 @@
         </div>
 
         <footer class="footer">
-            현물 vs 선물 오더북 비교 분석<br>
-            실시간 데이터 · API Key 불필요<br>
+            Spot Orderbook Depth — Binance · Bybit · Kraken<br>
+            실시간 오더북 데이터 · API Key 불필요<br>
             <a href="https://herdvibe.com" target="_blank">herdvibe.com</a>
         </footer>
     </div>
@@ -431,92 +331,72 @@
     <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" crossorigin="anonymous"></script>
 
     <script>
+        // ============================================================
+        // CONFIG
+        // ============================================================
         const KAKAO_KEY = 'a43ed7b39fac35458f4f9df925a279b5';
         const SHARE_URL = 'https://herdvibe.com/88';
+        const MARKET_TYPE = 'Spot';
 
-        const SPOT_SYMBOLS = {
+        const EXCHANGES = {
+            binance: { name: 'Binance', color: '#F0B90B', colorAlpha: 'rgba(240,185,11,0.25)' },
+            bybit:   { name: 'Bybit',   color: '#F7931A', colorAlpha: 'rgba(247,147,26,0.25)' },
+            kraken:  { name: 'Kraken',  color: '#7B61FF', colorAlpha: 'rgba(123,97,255,0.25)' },
+        };
+
+        const SYMBOLS = {
             BTC: { binance: 'BTCUSDT', bybit: 'BTCUSDT', kraken: 'XBTUSD' },
             ETH: { binance: 'ETHUSDT', bybit: 'ETHUSDT', kraken: 'ETHUSD' },
             SOL: { binance: 'SOLUSDT', bybit: 'SOLUSDT', kraken: 'SOLUSD' },
-        };
-
-        const PERP_SYMBOLS = {
-            BTC: { binance: 'BTCUSDT', bybit: 'BTCUSDT', kraken: 'PF_XBTUSD', hyperliquid: 'BTC' },
-            ETH: { binance: 'ETHUSDT', bybit: 'ETHUSDT', kraken: 'PF_ETHUSD', hyperliquid: 'ETH' },
-            SOL: { binance: 'SOLUSDT', bybit: 'SOLUSDT', kraken: 'PF_SOLUSD', hyperliquid: 'SOL' },
         };
 
         let currentCoin = 'BTC';
         let currentRange = 2;
         let autoInterval = 0;
         let autoTimer = null;
-        let spotChart = null;
-        let perpChart = null;
-        let spotBooks = {};
-        let perpBooks = {};
+        let depthChart = null;
+        let exchangeData = {};
 
         // ============================================================
-        // FETCHERS
+        // API FETCHERS
         // ============================================================
-        async function fetchSpotBinance(coin) {
-            const r = await fetch(`https://api.binance.com/api/v3/depth?symbol=${SPOT_SYMBOLS[coin].binance}&limit=1000`);
-            const d = await r.json();
-            return { bids: d.bids.map(([p,q])=>[+p,+q]), asks: d.asks.map(([p,q])=>[+p,+q]) };
-        }
-        async function fetchSpotBybit(coin) {
-            const r = await fetch(`https://api.bybit.com/v5/market/orderbook?category=spot&symbol=${SPOT_SYMBOLS[coin].bybit}&limit=200`);
-            const d = await r.json();
-            return { bids: d.result.b.map(([p,q])=>[+p,+q]), asks: d.result.a.map(([p,q])=>[+p,+q]) };
-        }
-        async function fetchSpotKraken(coin) {
-            const r = await fetch(`https://api.kraken.com/0/public/Depth?pair=${SPOT_SYMBOLS[coin].kraken}&count=500`);
-            const d = await r.json();
-            const k = Object.keys(d.result)[0];
-            return { bids: d.result[k].bids.map(([p,q])=>[+p,+q]), asks: d.result[k].asks.map(([p,q])=>[+p,+q]) };
-        }
-        async function fetchPerpBinance(coin) {
-            const r = await fetch(`https://fapi.binance.com/fapi/v1/depth?symbol=${PERP_SYMBOLS[coin].binance}&limit=1000`);
-            const d = await r.json();
-            return { bids: d.bids.map(([p,q])=>[+p,+q]), asks: d.asks.map(([p,q])=>[+p,+q]) };
-        }
-        async function fetchPerpBybit(coin) {
-            const r = await fetch(`https://api.bybit.com/v5/market/orderbook?category=linear&symbol=${PERP_SYMBOLS[coin].bybit}&limit=200`);
-            const d = await r.json();
-            return { bids: d.result.b.map(([p,q])=>[+p,+q]), asks: d.result.a.map(([p,q])=>[+p,+q]) };
-        }
-        async function fetchPerpKraken(coin) {
-            const r = await fetch(`https://futures.kraken.com/derivatives/api/v3/orderbook?symbol=${PERP_SYMBOLS[coin].kraken}`);
-            const d = await r.json();
-            return { bids: d.orderBook.bids.map(([p,q])=>[+p,+q]), asks: d.orderBook.asks.map(([p,q])=>[+p,+q]) };
-        }
-        async function fetchPerpHyperliquid(coin) {
-            const r = await fetch('https://api.hyperliquid.xyz/info', {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({type:'l2Book',coin:PERP_SYMBOLS[coin].hyperliquid})
-            });
-            const d = await r.json();
-            return { bids: d.levels[0].map(({px,sz})=>[+px,+sz]), asks: d.levels[1].map(({px,sz})=>[+px,+sz]) };
+        async function fetchBinance(coin) {
+            const sym = SYMBOLS[coin].binance;
+            const url = `https://api.binance.com/api/v3/depth?symbol=${sym}&limit=1000`;
+            const res = await fetch(url);
+            const data = await res.json();
+            return {
+                bids: data.bids.map(([p, q]) => [parseFloat(p), parseFloat(q)]),
+                asks: data.asks.map(([p, q]) => [parseFloat(p), parseFloat(q)])
+            };
         }
 
-        // ============================================================
-        // MERGE BOOKS
-        // ============================================================
-        function mergeBooks(books) {
-            let allBids = [], allAsks = [];
-            Object.values(books).forEach(({bids, asks}) => {
-                allBids.push(...bids);
-                allAsks.push(...asks);
-            });
-            allBids.sort((a,b) => b[0]-a[0]);
-            allAsks.sort((a,b) => a[0]-b[0]);
-            return { bids: allBids, asks: allAsks };
+        async function fetchBybit(coin) {
+            const sym = SYMBOLS[coin].bybit;
+            const url = `https://api.bybit.com/v5/market/orderbook?category=spot&symbol=${sym}&limit=200`;
+            const res = await fetch(url);
+            const data = await res.json();
+            const book = data.result;
+            return {
+                bids: book.b.map(([p, q]) => [parseFloat(p), parseFloat(q)]),
+                asks: book.a.map(([p, q]) => [parseFloat(p), parseFloat(q)])
+            };
         }
 
-        function getMid(books) {
-            const m = mergeBooks(books);
-            if (!m.bids.length || !m.asks.length) return 0;
-            return (m.bids[0][0] + m.asks[0][0]) / 2;
+        async function fetchKraken(coin) {
+            const sym = SYMBOLS[coin].kraken;
+            const url = `https://api.kraken.com/0/public/Depth?pair=${sym}&count=500`;
+            const res = await fetch(url);
+            const data = await res.json();
+            const key = Object.keys(data.result)[0];
+            const book = data.result[key];
+            return {
+                bids: book.bids.map(([p, q]) => [parseFloat(p), parseFloat(q)]),
+                asks: book.asks.map(([p, q]) => [parseFloat(p), parseFloat(q)])
+            };
         }
+
+        const FETCHERS = { binance: fetchBinance, bybit: fetchBybit, kraken: fetchKraken };
 
         // ============================================================
         // FETCH ALL
@@ -524,71 +404,94 @@
         async function fetchAll() {
             const btn = document.getElementById('refreshBtn');
             btn.classList.add('loading');
-            spotBooks = {};
-            perpBooks = {};
+            exchangeData = {};
 
-            const safeFetch = async (fn, label) => {
-                try { return await fn(currentCoin); } catch(e) { console.error(label, e); return null; }
-            };
+            const exNames = Object.keys(EXCHANGES);
 
-            const [sb, sy, sk, pb, py, pk, ph] = await Promise.all([
-                safeFetch(fetchSpotBinance, 'spot-binance'),
-                safeFetch(fetchSpotBybit, 'spot-bybit'),
-                safeFetch(fetchSpotKraken, 'spot-kraken'),
-                safeFetch(fetchPerpBinance, 'perp-binance'),
-                safeFetch(fetchPerpBybit, 'perp-bybit'),
-                safeFetch(fetchPerpKraken, 'perp-kraken'),
-                safeFetch(fetchPerpHyperliquid, 'perp-hyperliquid'),
-            ]);
+            // Set all dots to loading
+            exNames.forEach(ex => {
+                const dot = document.getElementById(`dot-${ex}`);
+                dot.className = 'ex-dot loading';
+            });
 
-            if (sb) spotBooks.binance = sb;
-            if (sy) spotBooks.bybit = sy;
-            if (sk) spotBooks.kraken = sk;
-            if (pb) perpBooks.binance = pb;
-            if (py) perpBooks.bybit = py;
-            if (pk) perpBooks.kraken = pk;
-            if (ph) perpBooks.hyperliquid = ph;
+            const promises = exNames.map(async (ex) => {
+                try {
+                    const data = await FETCHERS[ex](currentCoin);
+                    exchangeData[ex] = data;
+                    document.getElementById(`dot-${ex}`).className = 'ex-dot ok';
+                } catch (e) {
+                    console.error(`${ex} failed:`, e);
+                    document.getElementById(`dot-${ex}`).className = 'ex-dot fail';
+                }
+            });
 
+            await Promise.allSettled(promises);
             btn.classList.remove('loading');
 
-            if (Object.keys(spotBooks).length > 0 || Object.keys(perpBooks).length > 0) {
-                renderAll();
+            if (Object.keys(exchangeData).length > 0) {
+                renderChart();
+                renderBreakdown();
+                updateSummary();
             }
         }
 
         // ============================================================
-        // CUMULATIVE DEPTH
+        // PROCESS DATA
         // ============================================================
-        function calcCumulative(books, midPrice, rangePct) {
-            const merged = mergeBooks(books);
-            const priceMin = midPrice * (1 - rangePct);
-            const priceMax = midPrice * (1 + rangePct);
-            const GRID = 150;
-            const step = (priceMax - priceMin) / GRID;
-            const grid = Array.from({length: GRID+1}, (_,i) => priceMin + i*step);
+        function processDepthData() {
+            // Find mid price from best bid/ask across all exchanges
+            let bestBid = 0, bestAsk = Infinity;
 
-            const bidCum = [], askCum = [];
-            grid.forEach(price => {
-                if (price <= midPrice) {
-                    let vol = 0;
-                    for (const [p,q] of merged.bids) { if (p >= price && p <= midPrice) vol += q; }
-                    bidCum.push(vol);
-                    askCum.push(null);
-                } else {
-                    let vol = 0;
-                    for (const [p,q] of merged.asks) { if (p <= price && p >= midPrice) vol += q; }
-                    bidCum.push(null);
-                    askCum.push(vol);
-                }
+            Object.values(exchangeData).forEach(({ bids, asks }) => {
+                if (bids.length > 0) bestBid = Math.max(bestBid, bids[0][0]);
+                if (asks.length > 0) bestAsk = Math.min(bestAsk, asks[0][0]);
             });
 
-            return { grid, bidCum, askCum };
-        }
+            const midPrice = (bestBid + bestAsk) / 2;
+            const rangePct = currentRange / 100;
+            const priceMin = midPrice * (1 - rangePct);
+            const priceMax = midPrice * (1 + rangePct);
 
-        function getPriceDecimals() {
-            if (currentCoin === 'BTC') return 0;
-            if (currentCoin === 'ETH') return 1;
-            return 3;
+            // Create price grid (200 points)
+            const GRID_SIZE = 200;
+            const step = (priceMax - priceMin) / GRID_SIZE;
+            const priceGrid = Array.from({ length: GRID_SIZE + 1 }, (_, i) => priceMin + i * step);
+
+            // For each exchange, calculate cumulative depth at each price point
+            const exDepth = {};
+
+            Object.entries(exchangeData).forEach(([ex, { bids, asks }]) => {
+                // Sort bids descending, asks ascending
+                const sortedBids = [...bids].sort((a, b) => b[0] - a[0]);
+                const sortedAsks = [...asks].sort((a, b) => a[0] - b[0]);
+
+                const bidDepth = [];
+                const askDepth = [];
+
+                priceGrid.forEach(price => {
+                    if (price <= midPrice) {
+                        // Bid side: cumulative volume of bids >= this price
+                        let cumVol = 0;
+                        for (const [p, q] of sortedBids) {
+                            if (p >= price && p <= midPrice) cumVol += q;
+                        }
+                        bidDepth.push(cumVol);
+                        askDepth.push(null);
+                    } else {
+                        // Ask side: cumulative volume of asks <= this price
+                        let cumVol = 0;
+                        for (const [p, q] of sortedAsks) {
+                            if (p <= price && p >= midPrice) cumVol += q;
+                        }
+                        bidDepth.push(null);
+                        askDepth.push(cumVol);
+                    }
+                });
+
+                exDepth[ex] = { bidDepth, askDepth };
+            });
+
+            return { priceGrid, exDepth, midPrice, bestBid, bestAsk };
         }
 
         // ============================================================
@@ -600,209 +503,222 @@
                 const { ctx, chartArea } = chart;
                 if (!chartArea) return;
                 ctx.save();
-                ctx.font = '24px JetBrains Mono';
+                ctx.font = '36px JetBrains Mono';
                 ctx.fillStyle = 'rgba(255,255,255,0.06)';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText('Herdvibe.com', (chartArea.left+chartArea.right)/2, (chartArea.top+chartArea.bottom)/2);
+                ctx.fillText('Herdvibe.com', (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2);
                 ctx.restore();
             }
         };
 
         // ============================================================
-        // RENDER ALL
+        // CHART
         // ============================================================
-        function renderAll() {
-            const spotMid = getMid(spotBooks);
-            const perpMid = getMid(perpBooks);
-            const mid = spotMid || perpMid;
-            const rangePct = currentRange / 100;
-            const dec = getPriceDecimals();
+        function renderChart() {
+            const { priceGrid, exDepth, midPrice } = processDepthData();
 
-            // Basis
-            const basis = perpMid - spotMid;
-            const basisPct = spotMid > 0 ? (basis / spotMid * 100) : 0;
+            const labels = priceGrid.map(p => p.toFixed(getPriceDecimals()));
 
-            document.getElementById('spotMid').textContent = spotMid > 0 ? '$' + spotMid.toLocaleString('en-US', {maximumFractionDigits: dec}) : '-';
-            document.getElementById('perpMid').textContent = perpMid > 0 ? '$' + perpMid.toLocaleString('en-US', {maximumFractionDigits: dec}) : '-';
+            // Build datasets: for each exchange, bid dataset + ask dataset
+            const datasets = [];
+            const exNames = Object.keys(exDepth);
 
-            const bvEl = document.getElementById('basisValue');
-            bvEl.textContent = (basis >= 0 ? '+$' : '-$') + Math.abs(basis).toFixed(dec);
-            bvEl.style.color = basis >= 0 ? 'var(--bid-color)' : 'var(--ask-color)';
-            document.getElementById('basisLabel').textContent = basis >= 0 ? '선물 프리미엄' : '선물 디스카운트';
+            // Stack order: first exchange at bottom
+            exNames.forEach((ex, idx) => {
+                const cfg = EXCHANGES[ex];
+                const { bidDepth, askDepth } = exDepth[ex];
 
-            const bpEl = document.getElementById('basisPct');
-            bpEl.textContent = (basisPct >= 0 ? '+' : '') + basisPct.toFixed(4) + '%';
-            bpEl.style.color = basisPct >= 0 ? 'var(--bid-color)' : 'var(--ask-color)';
-            document.getElementById('basisType').textContent = basisPct >= 0 ? 'Contango' : 'Backwardation';
+                // Bid dataset
+                datasets.push({
+                    label: `${cfg.name} Bid`,
+                    data: bidDepth,
+                    borderColor: cfg.color,
+                    backgroundColor: cfg.colorAlpha,
+                    borderWidth: 1.5,
+                    fill: true,
+                    stepped: 'before',
+                    pointRadius: 0,
+                    stack: 'bids',
+                    order: exNames.length - idx,
+                });
 
-            // Charts
-            renderDepthChart('spotChart', spotBooks, spotMid || mid, rangePct, 'var(--spot-color)', 'rgba(77,171,247,0.2)', 'spotChartRef');
-            renderDepthChart('perpChart', perpBooks, perpMid || mid, rangePct, 'var(--perp-color)', 'rgba(255,212,59,0.2)', 'perpChartRef');
+                // Ask dataset
+                datasets.push({
+                    label: `${cfg.name} Ask`,
+                    data: askDepth,
+                    borderColor: cfg.color,
+                    backgroundColor: cfg.colorAlpha,
+                    borderWidth: 1.5,
+                    fill: true,
+                    stepped: 'after',
+                    pointRadius: 0,
+                    stack: 'asks',
+                    order: exNames.length - idx,
+                });
+            });
 
-            // Imbalance
-            renderImbalance(spotBooks, spotMid, rangePct, 'spot');
-            renderImbalance(perpBooks, perpMid, rangePct, 'perp');
+            const ctx = document.getElementById('depthChart').getContext('2d');
+            if (depthChart) depthChart.destroy();
 
-            // Liquidity
-            renderLiquidity(spotBooks, perpBooks, spotMid, perpMid, rangePct);
+            // Mid price line plugin
+            const midLinePlugin = {
+                id: 'midLine',
+                afterDraw(chart) {
+                    const { ctx, chartArea, scales } = chart;
+                    if (!chartArea || !scales.x) return;
+                    const midLabel = midPrice.toFixed(getPriceDecimals());
+                    // Find the x pixel closest to mid price
+                    const midIdx = labels.findIndex(l => parseFloat(l) >= midPrice);
+                    if (midIdx < 0) return;
+                    const x = scales.x.getPixelForValue(midIdx);
+                    ctx.save();
+                    ctx.setLineDash([4, 4]);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(x, chartArea.top);
+                    ctx.lineTo(x, chartArea.bottom);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            };
 
-            // Signal
-            renderSignal(basis, basisPct, spotBooks, perpBooks, spotMid, perpMid, rangePct);
-
-            document.getElementById('updatedTime').textContent = '업데이트: ' + new Date().toLocaleTimeString('ko-KR');
-        }
-
-        // ============================================================
-        // DEPTH CHART
-        // ============================================================
-        function renderDepthChart(canvasId, books, midPrice, rangePct, lineColor, fillColor, refName) {
-            const {grid, bidCum, askCum} = calcCumulative(books, midPrice, rangePct);
-            const labels = grid.map(p => p.toFixed(getPriceDecimals()));
-            const ctx = document.getElementById(canvasId).getContext('2d');
-
-            if (window[refName]) window[refName].destroy();
-
-            window[refName] = new Chart(ctx, {
+            depthChart = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels,
-                    datasets: [
-                        { label:'Bid', data:bidCum, borderColor:'#00d4aa', backgroundColor:'rgba(0,212,170,0.15)', borderWidth:1.5, fill:true, stepped:'before', pointRadius:0 },
-                        { label:'Ask', data:askCum, borderColor:'#ff4757', backgroundColor:'rgba(255,71,87,0.15)', borderWidth:1.5, fill:true, stepped:'after', pointRadius:0 },
-                    ]
-                },
-                plugins: [watermarkPlugin],
+                data: { labels, datasets },
+                plugins: [watermarkPlugin, midLinePlugin],
                 options: {
-                    responsive: true, maintainAspectRatio: false,
-                    interaction: { mode:'index', intersect:false },
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
                     plugins: {
                         legend: { display: false },
                         tooltip: {
-                            backgroundColor:'rgba(15,15,15,0.95)',
-                            bodyFont:{family:'JetBrains Mono',size:11},
+                            backgroundColor: 'rgba(15,15,15,0.95)',
+                            titleColor: '#fff', bodyColor: '#ccc',
+                            borderColor: '#333', borderWidth: 1, padding: 12,
+                            titleFont: { family: 'JetBrains Mono' },
+                            bodyFont: { family: 'JetBrains Mono', size: 11 },
                             callbacks: {
-                                title: (i) => '$'+i[0].label,
-                                label: (c) => c.raw === null ? null : ` ${c.dataset.label}: ${c.raw.toFixed(4)} ${currentCoin}`
+                                title: (items) => `$${items[0].label}`,
+                                label: (ctx) => {
+                                    if (ctx.raw === null) return null;
+                                    return ` ${ctx.dataset.label}: ${ctx.raw.toFixed(4)} ${currentCoin}`;
+                                }
                             }
                         }
                     },
                     scales: {
                         x: {
-                            grid:{color:'rgba(255,255,255,0.04)'},
-                            ticks:{color:'#bbb',font:{family:'JetBrains Mono',size:9},autoSkip:true,maxTicksLimit:6,maxRotation:0,callback:function(v){return '$'+this.getLabelForValue(v);}}
+                            grid: { color: 'rgba(255,255,255,0.04)' },
+                            ticks: {
+                                color: '#bbb',
+                                font: { family: 'JetBrains Mono', size: 10 },
+                                autoSkip: true,
+                                maxTicksLimit: 10,
+                                maxRotation: 0,
+                                callback: function(val) {
+                                    return '$' + this.getLabelForValue(val);
+                                }
+                            }
                         },
                         y: {
-                            grid:{color:'rgba(255,255,255,0.04)'},
-                            ticks:{color:'#bbb',font:{family:'JetBrains Mono',size:9},callback:(v)=>v>=1000?(v/1000).toFixed(1)+'K':v.toFixed(1)}
+                            grid: { color: 'rgba(255,255,255,0.04)' },
+                            stacked: true,
+                            ticks: {
+                                color: '#bbb',
+                                font: { family: 'JetBrains Mono', size: 10 },
+                                callback: (v) => {
+                                    if (v >= 1000) return (v / 1000).toFixed(1) + 'K';
+                                    return v.toFixed(2);
+                                }
+                            }
                         }
                     }
                 }
             });
         }
 
-        // ============================================================
-        // IMBALANCE
-        // ============================================================
-        function renderImbalance(books, midPrice, rangePct, prefix) {
-            let bidVol = 0, askVol = 0;
-            Object.values(books).forEach(({bids,asks}) => {
-                bids.forEach(([p,q]) => { if (p >= midPrice*(1-rangePct)) bidVol += q; });
-                asks.forEach(([p,q]) => { if (p <= midPrice*(1+rangePct)) askVol += q; });
-            });
-
-            const total = bidVol + askVol;
-            const bidPct = total > 0 ? (bidVol/total*100) : 50;
-            const askPct = total > 0 ? (askVol/total*100) : 50;
-
-            document.getElementById(prefix+'BidBar').style.width = bidPct + '%';
-            document.getElementById(prefix+'AskBar').style.width = askPct + '%';
-            document.getElementById(prefix+'BidPct').textContent = `Bid ${bidPct.toFixed(1)}%`;
-            document.getElementById(prefix+'AskPct').textContent = `Ask ${askPct.toFixed(1)}%`;
+        function getPriceDecimals() {
+            if (currentCoin === 'BTC') return 0;
+            if (currentCoin === 'ETH') return 1;
+            return 3;
         }
 
         // ============================================================
-        // LIQUIDITY
+        // SUMMARY
         // ============================================================
-        function renderLiquidity(sBooks, pBooks, sMid, pMid, rangePct) {
-            let sVol = 0, pVol = 0;
-            Object.values(sBooks).forEach(({bids,asks}) => {
-                bids.forEach(([p,q]) => { if (p >= sMid*(1-rangePct)) sVol += q; });
-                asks.forEach(([p,q]) => { if (p <= sMid*(1+rangePct)) sVol += q; });
-            });
-            Object.values(pBooks).forEach(({bids,asks}) => {
-                bids.forEach(([p,q]) => { if (p >= pMid*(1-rangePct)) pVol += q; });
-                asks.forEach(([p,q]) => { if (p <= pMid*(1+rangePct)) pVol += q; });
+        function updateSummary() {
+            const { midPrice, bestBid, bestAsk } = processDepthData();
+            const spread = bestAsk - bestBid;
+            const spreadPct = (spread / midPrice * 100).toFixed(4);
+
+            document.getElementById('midPrice').textContent = `$${midPrice.toLocaleString('en-US', { maximumFractionDigits: getPriceDecimals() })}`;
+            document.getElementById('spread').textContent = `$${spread.toFixed(getPriceDecimals())} (${spreadPct}%)`;
+
+            // Total bids/asks volume
+            let totalBidVol = 0, totalAskVol = 0;
+            const rangePct = currentRange / 100;
+            Object.values(exchangeData).forEach(({ bids, asks }) => {
+                bids.forEach(([p, q]) => { if (p >= midPrice * (1 - rangePct)) totalBidVol += q; });
+                asks.forEach(([p, q]) => { if (p <= midPrice * (1 + rangePct)) totalAskVol += q; });
             });
 
-            document.getElementById('spotTotalVol').textContent = sVol.toFixed(2) + ' ' + currentCoin;
-            document.getElementById('perpTotalVol').textContent = pVol.toFixed(2) + ' ' + currentCoin;
-            document.getElementById('spotTotalUsd').textContent = '$' + (sVol * sMid).toLocaleString('en-US', {maximumFractionDigits:0});
-            document.getElementById('perpTotalUsd').textContent = '$' + (pVol * pMid).toLocaleString('en-US', {maximumFractionDigits:0});
-
-            const ratio = sVol > 0 ? (pVol / sVol).toFixed(1) : '-';
-            document.getElementById('liqRatio').textContent = ratio + 'x';
+            document.getElementById('totalBids').textContent = `${totalBidVol.toFixed(2)} ${currentCoin}`;
+            document.getElementById('totalAsks').textContent = `${totalAskVol.toFixed(2)} ${currentCoin}`;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('ko-KR');
         }
 
         // ============================================================
-        // SIGNAL
+        // BREAKDOWN
         // ============================================================
-        function renderSignal(basis, basisPct, sBooks, pBooks, sMid, pMid, rangePct) {
-            // Spot imbalance
-            let sBid=0, sAsk=0, pBid=0, pAsk=0;
-            Object.values(sBooks).forEach(({bids,asks}) => {
-                bids.forEach(([p,q]) => { if (p >= sMid*(1-rangePct)) sBid += q; });
-                asks.forEach(([p,q]) => { if (p <= sMid*(1+rangePct)) sAsk += q; });
+        function renderBreakdown() {
+            const grid = document.getElementById('breakdownGrid');
+            grid.innerHTML = '';
+
+            const { midPrice } = processDepthData();
+            const rangePct = currentRange / 100;
+
+            // Calculate per-exchange volumes
+            const exVols = {};
+            let totalVol = 0;
+
+            Object.entries(exchangeData).forEach(([ex, { bids, asks }]) => {
+                let bidVol = 0, askVol = 0;
+                bids.forEach(([p, q]) => { if (p >= midPrice * (1 - rangePct)) bidVol += q; });
+                asks.forEach(([p, q]) => { if (p <= midPrice * (1 + rangePct)) askVol += q; });
+                exVols[ex] = { bidVol, askVol, total: bidVol + askVol };
+                totalVol += bidVol + askVol;
             });
-            Object.values(pBooks).forEach(({bids,asks}) => {
-                bids.forEach(([p,q]) => { if (p >= pMid*(1-rangePct)) pBid += q; });
-                asks.forEach(([p,q]) => { if (p <= pMid*(1+rangePct)) pAsk += q; });
+
+            Object.entries(exVols).forEach(([ex, { bidVol, askVol, total }]) => {
+                const cfg = EXCHANGES[ex];
+                const pct = totalVol > 0 ? (total / totalVol * 100).toFixed(1) : 0;
+
+                const card = document.createElement('div');
+                card.className = 'breakdown-card';
+                card.innerHTML = `
+                    <div class="bk-header">
+                        <span class="bk-name" style="color:${cfg.color}">${cfg.name}</span>
+                        <span class="bk-pct">${pct}%</span>
+                    </div>
+                    <div class="bk-bar">
+                        <div class="bk-bar-fill" style="width:${pct}%; background:${cfg.color}"></div>
+                    </div>
+                    <div class="bk-stats">
+                        <span class="bk-bid">Bid: ${bidVol.toFixed(2)}</span>
+                        <span class="bk-ask">Ask: ${askVol.toFixed(2)}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
             });
-
-            const sTotal = sBid+sAsk, pTotal = pBid+pAsk;
-            const sBidPct = sTotal > 0 ? sBid/sTotal*100 : 50;
-            const pBidPct = pTotal > 0 ? pBid/pTotal*100 : 50;
-            const perpSpotRatio = sTotal > 0 ? pTotal/sTotal : 1;
-
-            let signals = [];
-            let score = 0; // positive=bullish, negative=bearish
-
-            // Basis signal
-            if (basisPct > 0.05) { signals.push(`선물 프리미엄 +${basisPct.toFixed(3)}% (콘탱고)`); score += 1; }
-            else if (basisPct < -0.05) { signals.push(`선물 디스카운트 ${basisPct.toFixed(3)}% (백워데이션)`); score -= 1; }
-            else { signals.push(`Basis 중립 (${basisPct.toFixed(3)}%)`); }
-
-            // Spot imbalance
-            if (sBidPct > 55) { signals.push(`현물 매수벽 우위 (${sBidPct.toFixed(0)}%)`); score += 1; }
-            else if (sBidPct < 45) { signals.push(`현물 매도벽 우위 (${(100-sBidPct).toFixed(0)}%)`); score -= 1; }
-            else { signals.push(`현물 Bid-Ask 균형`); }
-
-            // Perp imbalance
-            if (pBidPct > 55) { signals.push(`선물 매수벽 우위 (${pBidPct.toFixed(0)}%)`); score += 1; }
-            else if (pBidPct < 45) { signals.push(`선물 매도벽 우위 (${(100-pBidPct).toFixed(0)}%)`); score -= 1; }
-            else { signals.push(`선물 Bid-Ask 균형`); }
-
-            // Leverage ratio
-            if (perpSpotRatio > 5) { signals.push(`선물/현물 유동성 비율 ${perpSpotRatio.toFixed(1)}x — 레버리지 투기 중심`); }
-            else if (perpSpotRatio < 2) { signals.push(`선물/현물 유동성 비율 ${perpSpotRatio.toFixed(1)}x — 현물 수요 기반`); }
-
-            let tag, tagClass;
-            if (score >= 2) { tag = 'BULLISH'; tagClass = 'bullish'; }
-            else if (score <= -2) { tag = 'BEARISH'; tagClass = 'bearish'; }
-            else if (score > 0) { tag = 'SLIGHTLY BULLISH'; tagClass = 'bullish'; }
-            else if (score < 0) { tag = 'SLIGHTLY BEARISH'; tagClass = 'bearish'; }
-            else { tag = 'NEUTRAL'; tagClass = 'neutral'; }
-
-            const box = document.getElementById('signalBox');
-            box.innerHTML = `
-                <div class="signal-text">${signals.join('<br>')}</div>
-                <div class="signal-tag ${tagClass}">${tag}</div>
-            `;
         }
 
         // ============================================================
         // CONTROLS
         // ============================================================
+        // Coin selector
         document.querySelectorAll('[data-coin]').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('[data-coin]').forEach(b => b.classList.remove('coin-active'));
@@ -812,22 +728,30 @@
             });
         });
 
+        // Range selector
         document.querySelectorAll('[data-range]').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('[data-range]').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 currentRange = parseInt(btn.dataset.range);
-                if (Object.keys(spotBooks).length > 0) renderAll();
+                if (Object.keys(exchangeData).length > 0) {
+                    renderChart();
+                    renderBreakdown();
+                    updateSummary();
+                }
             });
         });
 
+        // Auto refresh
         document.querySelectorAll('.auto-toggle').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.auto-toggle').forEach(b => b.classList.remove('on'));
                 btn.classList.add('on');
                 autoInterval = parseInt(btn.dataset.interval);
                 if (autoTimer) clearInterval(autoTimer);
-                if (autoInterval > 0) autoTimer = setInterval(fetchAll, autoInterval * 1000);
+                if (autoInterval > 0) {
+                    autoTimer = setInterval(fetchAll, autoInterval * 1000);
+                }
             });
         });
 
@@ -835,19 +759,19 @@
         // SHARING
         // ============================================================
         function shareTwitter() {
-            const text = `${currentCoin} 현물 vs 선물 오더북 비교\nBasis, 유동성, Imbalance 실시간 분석`;
+            const text = `${currentCoin} Spot Orderbook Depth\n거래소별 현물 유동성을 한눈에 확인하세요`;
             window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(SHARE_URL)}`, '_blank');
         }
         function shareKakao() {
             if (!Kakao.isInitialized()) Kakao.init(KAKAO_KEY);
             Kakao.Share.sendDefault({
-                objectType:'feed',
-                content:{title:`${currentCoin} 현물 vs 선물 비교`,description:'오더북 기반 시장 분석',imageUrl:'',link:{mobileWebUrl:SHARE_URL,webUrl:SHARE_URL}},
-                buttons:[{title:'차트 보기',link:{mobileWebUrl:SHARE_URL,webUrl:SHARE_URL}}]
+                objectType: 'feed',
+                content: { title: `${currentCoin} Spot Orderbook Depth`, description: '거래소별 현물 오더북 통합 뎁스 차트', imageUrl: '', link: { mobileWebUrl: SHARE_URL, webUrl: SHARE_URL } },
+                buttons: [{ title: '차트 보기', link: { mobileWebUrl: SHARE_URL, webUrl: SHARE_URL } }]
             });
         }
         function shareTelegram() {
-            window.open(`https://t.me/share/url?url=${encodeURIComponent(SHARE_URL)}&text=${encodeURIComponent(`${currentCoin} 현물 vs 선물 오더북 비교`)}`, '_blank');
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(SHARE_URL)}&text=${encodeURIComponent(`${currentCoin} Spot Orderbook Depth`)}`, '_blank');
         }
         function shareInstagram() {
             navigator.clipboard.writeText(SHARE_URL).then(() => {
@@ -871,7 +795,10 @@
         // ============================================================
         // BOOT
         // ============================================================
-        document.addEventListener('DOMContentLoaded', fetchAll);
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('autoOff').classList.add('on');
+            fetchAll();
+        });
     </script>
 </body>
 </html>
