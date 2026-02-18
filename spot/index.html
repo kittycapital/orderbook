@@ -613,7 +613,7 @@
                         x: {
                             grid: { color: 'rgba(255,255,255,0.04)' },
                             ticks: {
-                                color: '#888',
+                                color: '#bbb',
                                 font: { family: 'JetBrains Mono', size: 10 },
                                 autoSkip: true,
                                 maxTicksLimit: 10,
@@ -627,7 +627,7 @@
                             grid: { color: 'rgba(255,255,255,0.04)' },
                             stacked: true,
                             ticks: {
-                                color: '#888',
+                                color: '#bbb',
                                 font: { family: 'JetBrains Mono', size: 10 },
                                 callback: (v) => {
                                     if (v >= 1000) return (v / 1000).toFixed(1) + 'K';
@@ -773,8 +773,16 @@
         function shareTelegram() {
             window.open(`https://t.me/share/url?url=${encodeURIComponent(SHARE_URL)}&text=${encodeURIComponent(`${currentCoin} Spot Orderbook Depth`)}`, '_blank');
         }
+        function clipCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); } catch(e) {}
+            document.body.removeChild(ta);
+            return Promise.resolve();
+        }
         function shareInstagram() {
-            navigator.clipboard.writeText(SHARE_URL).then(() => {
+            clipCopy(SHARE_URL).then(() => {
                 const btn = document.querySelector('.instagram');
                 const orig = btn.innerHTML;
                 btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> 링크 복사됨! 스토리에 붙여넣기';
@@ -783,7 +791,7 @@
             });
         }
         function copyLink() {
-            navigator.clipboard.writeText(SHARE_URL).then(() => {
+            clipCopy(SHARE_URL).then(() => {
                 const btn = document.querySelector('.copy-link');
                 const orig = btn.innerHTML;
                 btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> 복사됨!';
