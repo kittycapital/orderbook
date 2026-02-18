@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spot Orderbook Depth | Herdvibe</title>
+    <meta property="og:title" content="Spot Orderbook Depth | Herdvibe">
+    <meta property="og:description" content="BTC/ETH/SOL 현물 오더북 통합 뎁스 차트 - Binance, Bybit, Kraken">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        ::-webkit-scrollbar { display: none; }
+        * { -ms-overflow-style: none; scrollbar-width: none; }
+
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #111111;
+            --bg-tertiary: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --text-muted: #555555;
+            --border-color: #2a2a2a;
+            --bid-color: #00d4aa;
+            --ask-color: #ff4757;
+            --binance-color: #F0B90B;
+            --bybit-color: #F7931A;
+            --kraken-color: #7B61FF;
+        }
+
+        html, body { overflow-x: hidden; }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px 20px 40px; }
+
+        .header {
+            text-align: center; padding: 30px 0 20px;
+            border-bottom: 1px solid var(--border-color); margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 6px;
+            background: linear-gradient(135deg, #fff 0%, #888 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+
+        .header p { color: var(--text-secondary); font-size: 0.85rem; }
+
+        /* Controls */
+        .controls {
+            display: flex; align-items: center; justify-content: center;
+            gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
+        }
+
+        .control-group {
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        .control-label {
+            font-size: 0.72rem; color: var(--text-secondary);
+        }
+
+        .ctrl-btn {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+            padding: 6px 12px; background: var(--bg-tertiary);
+            border: 1px solid var(--border-color); border-radius: 6px;
+            color: var(--text-secondary); cursor: pointer; transition: all 0.2s;
+        }
+
+        .ctrl-btn:hover { border-color: #3a3a3a; }
+        .ctrl-btn.active { border-color: var(--bid-color); color: var(--bid-color); background: rgba(0,212,170,0.1); }
+        .ctrl-btn.coin-active { border-color: #fff; color: #fff; background: rgba(255,255,255,0.1); }
+
+        .refresh-btn {
+            font-family: 'Noto Sans KR', sans-serif; font-size: 0.72rem;
+            padding: 6px 14px; background: var(--bg-tertiary);
+            border: 1px solid var(--border-color); border-radius: 6px;
+            color: var(--text-secondary); cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; gap: 5px;
+        }
+
+        .refresh-btn:hover { border-color: var(--bid-color); color: var(--bid-color); }
+        .refresh-btn.loading { opacity: 0.5; pointer-events: none; }
+        .refresh-btn svg { width: 13px; height: 13px; }
+
+        .auto-toggle {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
+            padding: 4px 8px; background: transparent;
+            border: 1px solid var(--border-color); border-radius: 4px;
+            color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+        }
+
+        .auto-toggle.on { border-color: var(--bid-color); color: var(--bid-color); }
+
+        /* Summary */
+        .summary-row {
+            display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;
+            margin-bottom: 20px; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
+        }
+
+        .summary-item { display: flex; align-items: center; gap: 6px; }
+        .summary-item .label { color: var(--text-muted); font-size: 0.7rem; }
+
+        /* Chart */
+        .chart-section {
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 20px; margin-bottom: 20px; position: relative;
+        }
+
+        .chart-container { position: relative; height: 450px; width: 100%; }
+
+        .chart-legend {
+            display: flex; gap: 15px; justify-content: center;
+            margin-bottom: 12px; flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 0.72rem; color: var(--text-secondary);
+        }
+
+        .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+        /* Exchange Status */
+        .exchange-status {
+            display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .ex-status {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 0.7rem; font-family: 'JetBrains Mono', monospace;
+        }
+
+        .ex-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .ex-dot.ok { background: var(--bid-color); }
+        .ex-dot.fail { background: var(--ask-color); }
+        .ex-dot.loading { background: var(--binance-color); animation: pulse 1s infinite; }
+
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        /* Volume Breakdown */
+        .breakdown-section {
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 20px; margin-bottom: 20px;
+        }
+
+        .breakdown-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .breakdown-card {
+            background: var(--bg-tertiary); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 14px;
+        }
+
+        .bk-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .bk-name { font-size: 0.8rem; font-weight: 600; }
+        .bk-pct { font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-secondary); }
+
+        .bk-bar {
+            height: 6px; border-radius: 3px; background: var(--bg-primary);
+            overflow: hidden; margin-bottom: 8px;
+        }
+
+        .bk-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+        .bk-stats {
+            display: flex; justify-content: space-between;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
+        }
+
+        .bk-bid { color: var(--bid-color); }
+        .bk-ask { color: var(--ask-color); }
+
+        /* Share */
+        .share-bar { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+
+        .share-btn {
+            display: flex; align-items: center; gap: 6px; padding: 8px 14px;
+            background: transparent; border: 1px solid var(--border-color);
+            border-radius: 8px; color: var(--text-secondary); font-size: 0.72rem;
+            font-family: 'Noto Sans KR', sans-serif; cursor: pointer; transition: all 0.2s;
+        }
+
+        .share-btn svg { width: 14px; height: 14px; }
+        .share-btn:hover { background: var(--bg-tertiary); }
+        .share-btn.twitter:hover { border-color: #1da1f2; color: #1da1f2; }
+        .share-btn.kakao:hover { border-color: #fee500; color: #fee500; }
+        .share-btn.telegram:hover { border-color: #26a5e4; color: #26a5e4; }
+        .share-btn.copy-link:hover { border-color: var(--bid-color); color: var(--bid-color); }
+
+        .footer {
+            text-align: center; padding: 15px 0; border-top: 1px solid var(--border-color);
+            font-size: 0.7rem; color: var(--text-muted); line-height: 1.8;
+        }
+        .footer a { color: var(--bid-color); text-decoration: none; }
+
+        @media (max-width: 768px) {
+            .container { padding: 10px 12px 30px; }
+            .header h1 { font-size: 1.3rem; }
+            .chart-container { height: 350px; }
+        }
+
+        @media (max-width: 480px) {
+            .chart-container { height: 280px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Spot Orderbook Depth</h1>
+            <p>현물 통합 오더북 뎁스 차트 — Binance · Bybit · Kraken</p>
+        </header>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="control-group">
+                <span class="control-label">코인:</span>
+                <button class="ctrl-btn coin-active" data-coin="BTC">BTC</button>
+                <button class="ctrl-btn" data-coin="ETH">ETH</button>
+                <button class="ctrl-btn" data-coin="SOL">SOL</button>
+            </div>
+            <div class="control-group">
+                <span class="control-label">범위:</span>
+                <button class="ctrl-btn" data-range="1">±1%</button>
+                <button class="ctrl-btn active" data-range="2">±2%</button>
+                <button class="ctrl-btn" data-range="5">±5%</button>
+                <button class="ctrl-btn" data-range="10">±10%</button>
+            </div>
+            <button class="refresh-btn" id="refreshBtn" onclick="fetchAll()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+                Refresh
+            </button>
+            <div class="control-group">
+                <span class="control-label">자동:</span>
+                <button class="auto-toggle" data-interval="0" id="autoOff">OFF</button>
+                <button class="auto-toggle" data-interval="5">5s</button>
+                <button class="auto-toggle" data-interval="10">10s</button>
+                <button class="auto-toggle" data-interval="30">30s</button>
+            </div>
+        </div>
+
+        <!-- Exchange Status -->
+        <div class="exchange-status" id="exchangeStatus">
+            <div class="ex-status"><div class="ex-dot" id="dot-binance"></div><span style="color:var(--binance-color)">Binance</span></div>
+            <div class="ex-status"><div class="ex-dot" id="dot-bybit"></div><span style="color:var(--bybit-color)">Bybit</span></div>
+            <div class="ex-status"><div class="ex-dot" id="dot-kraken"></div><span style="color:var(--kraken-color)">Kraken</span></div>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-row" id="summaryRow">
+            <div class="summary-item"><span class="label">Mid Price</span><span id="midPrice">-</span></div>
+            <div class="summary-item"><span class="label">Spread</span><span id="spread">-</span></div>
+            <div class="summary-item"><span class="label">Total Bids</span><span id="totalBids" style="color:var(--bid-color)">-</span></div>
+            <div class="summary-item"><span class="label">Total Asks</span><span id="totalAsks" style="color:var(--ask-color)">-</span></div>
+            <div class="summary-item"><span class="label">Updated</span><span id="lastUpdate" style="color:var(--text-muted)">-</span></div>
+        </div>
+
+        <!-- Chart -->
+        <section class="chart-section">
+            <div class="chart-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:var(--binance-color)"></div>Binance</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--bybit-color)"></div>Bybit</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--kraken-color)"></div>Kraken</div>
+            </div>
+            <div class="chart-container">
+                <canvas id="depthChart"></canvas>
+            </div>
+        </section>
+
+        <!-- Volume Breakdown -->
+        <section class="breakdown-section">
+            <div style="text-align:center; margin-bottom:15px;">
+                <h2 style="font-size:1.1rem; font-weight:600;">거래소별 유동성</h2>
+                <p style="font-size:0.75rem; color:var(--text-muted);">범위 내 총 매수/매도 물량 비교</p>
+            </div>
+            <div class="breakdown-grid" id="breakdownGrid"></div>
+        </section>
+
+        <!-- Share -->
+        <div class="share-bar">
+            <button class="share-btn twitter" onclick="shareTwitter()">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                트위터
+            </button>
+            <button class="share-btn kakao" onclick="shareKakao()">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.477 3 2 6.463 2 10.691c0 2.724 1.8 5.116 4.508 6.482-.144.525-.925 3.388-.958 3.603 0 0-.02.157.083.217.103.06.224.013.224.013.296-.041 3.434-2.263 3.973-2.652.703.098 1.428.15 2.17.15 5.523 0 10-3.463 10-7.813C22 6.463 17.523 3 12 3z"/></svg>
+                카카오톡
+            </button>
+            <button class="share-btn telegram" onclick="shareTelegram()">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                텔레그램
+            </button>
+            <button class="share-btn copy-link" onclick="copyLink()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                링크 복사
+            </button>
+        </div>
+
+        <footer class="footer">
+            Spot Orderbook Depth — Binance · Bybit · Kraken<br>
+            실시간 오더북 데이터 · API Key 불필요<br>
+            <a href="https://herdvibe.com" target="_blank">herdvibe.com</a>
+        </footer>
+    </div>
+
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.4/kakao.min.js" crossorigin="anonymous"></script>
+
+    <script>
+        // ============================================================
+        // CONFIG
+        // ============================================================
+        const KAKAO_KEY = 'a43ed7b39fac35458f4f9df925a279b5';
+        const SHARE_URL = 'https://herdvibe.com/88';
+        const MARKET_TYPE = 'Spot';
+
+        const EXCHANGES = {
+            binance: { name: 'Binance', color: '#F0B90B', colorAlpha: 'rgba(240,185,11,0.25)' },
+            bybit:   { name: 'Bybit',   color: '#F7931A', colorAlpha: 'rgba(247,147,26,0.25)' },
+            kraken:  { name: 'Kraken',  color: '#7B61FF', colorAlpha: 'rgba(123,97,255,0.25)' },
+        };
+
+        const SYMBOLS = {
+            BTC: { binance: 'BTCUSDT', bybit: 'BTCUSDT', kraken: 'XBTUSD' },
+            ETH: { binance: 'ETHUSDT', bybit: 'ETHUSDT', kraken: 'ETHUSD' },
+            SOL: { binance: 'SOLUSDT', bybit: 'SOLUSDT', kraken: 'SOLUSD' },
+        };
+
+        let currentCoin = 'BTC';
+        let currentRange = 2;
+        let autoInterval = 0;
+        let autoTimer = null;
+        let depthChart = null;
+        let exchangeData = {};
+
+        // ============================================================
+        // API FETCHERS
+        // ============================================================
+        async function fetchBinance(coin) {
+            const sym = SYMBOLS[coin].binance;
+            const url = `https://api.binance.com/api/v3/depth?symbol=${sym}&limit=1000`;
+            const res = await fetch(url);
+            const data = await res.json();
+            return {
+                bids: data.bids.map(([p, q]) => [parseFloat(p), parseFloat(q)]),
+                asks: data.asks.map(([p, q]) => [parseFloat(p), parseFloat(q)])
+            };
+        }
+
+        async function fetchBybit(coin) {
+            const sym = SYMBOLS[coin].bybit;
+            const url = `https://api.bybit.com/v5/market/orderbook?category=spot&symbol=${sym}&limit=200`;
+            const res = await fetch(url);
+            const data = await res.json();
+            const book = data.result;
+            return {
+                bids: book.b.map(([p, q]) => [parseFloat(p), parseFloat(q)]),
+                asks: book.a.map(([p, q]) => [parseFloat(p), parseFloat(q)])
+            };
+        }
+
+        async function fetchKraken(coin) {
+            const sym = SYMBOLS[coin].kraken;
+            const url = `https://api.kraken.com/0/public/Depth?pair=${sym}&count=500`;
+            const res = await fetch(url);
+            const data = await res.json();
+            const key = Object.keys(data.result)[0];
+            const book = data.result[key];
+            return {
+                bids: book.bids.map(([p, q]) => [parseFloat(p), parseFloat(q)]),
+                asks: book.asks.map(([p, q]) => [parseFloat(p), parseFloat(q)])
+            };
+        }
+
+        const FETCHERS = { binance: fetchBinance, bybit: fetchBybit, kraken: fetchKraken };
+
+        // ============================================================
+        // FETCH ALL
+        // ============================================================
+        async function fetchAll() {
+            const btn = document.getElementById('refreshBtn');
+            btn.classList.add('loading');
+            exchangeData = {};
+
+            const exNames = Object.keys(EXCHANGES);
+
+            // Set all dots to loading
+            exNames.forEach(ex => {
+                const dot = document.getElementById(`dot-${ex}`);
+                dot.className = 'ex-dot loading';
+            });
+
+            const promises = exNames.map(async (ex) => {
+                try {
+                    const data = await FETCHERS[ex](currentCoin);
+                    exchangeData[ex] = data;
+                    document.getElementById(`dot-${ex}`).className = 'ex-dot ok';
+                } catch (e) {
+                    console.error(`${ex} failed:`, e);
+                    document.getElementById(`dot-${ex}`).className = 'ex-dot fail';
+                }
+            });
+
+            await Promise.allSettled(promises);
+            btn.classList.remove('loading');
+
+            if (Object.keys(exchangeData).length > 0) {
+                renderChart();
+                renderBreakdown();
+                updateSummary();
+            }
+        }
+
+        // ============================================================
+        // PROCESS DATA
+        // ============================================================
+        function processDepthData() {
+            // Find mid price from best bid/ask across all exchanges
+            let bestBid = 0, bestAsk = Infinity;
+
+            Object.values(exchangeData).forEach(({ bids, asks }) => {
+                if (bids.length > 0) bestBid = Math.max(bestBid, bids[0][0]);
+                if (asks.length > 0) bestAsk = Math.min(bestAsk, asks[0][0]);
+            });
+
+            const midPrice = (bestBid + bestAsk) / 2;
+            const rangePct = currentRange / 100;
+            const priceMin = midPrice * (1 - rangePct);
+            const priceMax = midPrice * (1 + rangePct);
+
+            // Create price grid (200 points)
+            const GRID_SIZE = 200;
+            const step = (priceMax - priceMin) / GRID_SIZE;
+            const priceGrid = Array.from({ length: GRID_SIZE + 1 }, (_, i) => priceMin + i * step);
+
+            // For each exchange, calculate cumulative depth at each price point
+            const exDepth = {};
+
+            Object.entries(exchangeData).forEach(([ex, { bids, asks }]) => {
+                // Sort bids descending, asks ascending
+                const sortedBids = [...bids].sort((a, b) => b[0] - a[0]);
+                const sortedAsks = [...asks].sort((a, b) => a[0] - b[0]);
+
+                const bidDepth = [];
+                const askDepth = [];
+
+                priceGrid.forEach(price => {
+                    if (price <= midPrice) {
+                        // Bid side: cumulative volume of bids >= this price
+                        let cumVol = 0;
+                        for (const [p, q] of sortedBids) {
+                            if (p >= price && p <= midPrice) cumVol += q;
+                        }
+                        bidDepth.push(cumVol);
+                        askDepth.push(null);
+                    } else {
+                        // Ask side: cumulative volume of asks <= this price
+                        let cumVol = 0;
+                        for (const [p, q] of sortedAsks) {
+                            if (p <= price && p >= midPrice) cumVol += q;
+                        }
+                        bidDepth.push(null);
+                        askDepth.push(cumVol);
+                    }
+                });
+
+                exDepth[ex] = { bidDepth, askDepth };
+            });
+
+            return { priceGrid, exDepth, midPrice, bestBid, bestAsk };
+        }
+
+        // ============================================================
+        // WATERMARK
+        // ============================================================
+        const watermarkPlugin = {
+            id: 'watermark',
+            afterDraw(chart) {
+                const { ctx, chartArea } = chart;
+                if (!chartArea) return;
+                ctx.save();
+                ctx.font = '36px JetBrains Mono';
+                ctx.fillStyle = 'rgba(255,255,255,0.06)';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('Herdvibe.com', (chartArea.left + chartArea.right) / 2, (chartArea.top + chartArea.bottom) / 2);
+                ctx.restore();
+            }
+        };
+
+        // ============================================================
+        // CHART
+        // ============================================================
+        function renderChart() {
+            const { priceGrid, exDepth, midPrice } = processDepthData();
+
+            const labels = priceGrid.map(p => p.toFixed(getPriceDecimals()));
+
+            // Build datasets: for each exchange, bid dataset + ask dataset
+            const datasets = [];
+            const exNames = Object.keys(exDepth);
+
+            // Stack order: first exchange at bottom
+            exNames.forEach((ex, idx) => {
+                const cfg = EXCHANGES[ex];
+                const { bidDepth, askDepth } = exDepth[ex];
+
+                // Bid dataset
+                datasets.push({
+                    label: `${cfg.name} Bid`,
+                    data: bidDepth,
+                    borderColor: cfg.color,
+                    backgroundColor: cfg.colorAlpha,
+                    borderWidth: 1.5,
+                    fill: true,
+                    stepped: 'before',
+                    pointRadius: 0,
+                    stack: 'bids',
+                    order: exNames.length - idx,
+                });
+
+                // Ask dataset
+                datasets.push({
+                    label: `${cfg.name} Ask`,
+                    data: askDepth,
+                    borderColor: cfg.color,
+                    backgroundColor: cfg.colorAlpha,
+                    borderWidth: 1.5,
+                    fill: true,
+                    stepped: 'after',
+                    pointRadius: 0,
+                    stack: 'asks',
+                    order: exNames.length - idx,
+                });
+            });
+
+            const ctx = document.getElementById('depthChart').getContext('2d');
+            if (depthChart) depthChart.destroy();
+
+            // Mid price line plugin
+            const midLinePlugin = {
+                id: 'midLine',
+                afterDraw(chart) {
+                    const { ctx, chartArea, scales } = chart;
+                    if (!chartArea || !scales.x) return;
+                    const midLabel = midPrice.toFixed(getPriceDecimals());
+                    // Find the x pixel closest to mid price
+                    const midIdx = labels.findIndex(l => parseFloat(l) >= midPrice);
+                    if (midIdx < 0) return;
+                    const x = scales.x.getPixelForValue(midIdx);
+                    ctx.save();
+                    ctx.setLineDash([4, 4]);
+                    ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(x, chartArea.top);
+                    ctx.lineTo(x, chartArea.bottom);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            };
+
+            depthChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                plugins: [watermarkPlugin, midLinePlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15,15,15,0.95)',
+                            titleColor: '#fff', bodyColor: '#ccc',
+                            borderColor: '#333', borderWidth: 1, padding: 12,
+                            titleFont: { family: 'JetBrains Mono' },
+                            bodyFont: { family: 'JetBrains Mono', size: 11 },
+                            callbacks: {
+                                title: (items) => `$${items[0].label}`,
+                                label: (ctx) => {
+                                    if (ctx.raw === null) return null;
+                                    return ` ${ctx.dataset.label}: ${ctx.raw.toFixed(4)} ${currentCoin}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.04)' },
+                            ticks: {
+                                color: '#888',
+                                font: { family: 'JetBrains Mono', size: 10 },
+                                autoSkip: true,
+                                maxTicksLimit: 10,
+                                maxRotation: 0,
+                                callback: function(val) {
+                                    return '$' + this.getLabelForValue(val);
+                                }
+                            }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.04)' },
+                            stacked: true,
+                            ticks: {
+                                color: '#888',
+                                font: { family: 'JetBrains Mono', size: 10 },
+                                callback: (v) => {
+                                    if (v >= 1000) return (v / 1000).toFixed(1) + 'K';
+                                    return v.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function getPriceDecimals() {
+            if (currentCoin === 'BTC') return 0;
+            if (currentCoin === 'ETH') return 1;
+            return 3;
+        }
+
+        // ============================================================
+        // SUMMARY
+        // ============================================================
+        function updateSummary() {
+            const { midPrice, bestBid, bestAsk } = processDepthData();
+            const spread = bestAsk - bestBid;
+            const spreadPct = (spread / midPrice * 100).toFixed(4);
+
+            document.getElementById('midPrice').textContent = `$${midPrice.toLocaleString('en-US', { maximumFractionDigits: getPriceDecimals() })}`;
+            document.getElementById('spread').textContent = `$${spread.toFixed(getPriceDecimals())} (${spreadPct}%)`;
+
+            // Total bids/asks volume
+            let totalBidVol = 0, totalAskVol = 0;
+            const rangePct = currentRange / 100;
+            Object.values(exchangeData).forEach(({ bids, asks }) => {
+                bids.forEach(([p, q]) => { if (p >= midPrice * (1 - rangePct)) totalBidVol += q; });
+                asks.forEach(([p, q]) => { if (p <= midPrice * (1 + rangePct)) totalAskVol += q; });
+            });
+
+            document.getElementById('totalBids').textContent = `${totalBidVol.toFixed(2)} ${currentCoin}`;
+            document.getElementById('totalAsks').textContent = `${totalAskVol.toFixed(2)} ${currentCoin}`;
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('ko-KR');
+        }
+
+        // ============================================================
+        // BREAKDOWN
+        // ============================================================
+        function renderBreakdown() {
+            const grid = document.getElementById('breakdownGrid');
+            grid.innerHTML = '';
+
+            const { midPrice } = processDepthData();
+            const rangePct = currentRange / 100;
+
+            // Calculate per-exchange volumes
+            const exVols = {};
+            let totalVol = 0;
+
+            Object.entries(exchangeData).forEach(([ex, { bids, asks }]) => {
+                let bidVol = 0, askVol = 0;
+                bids.forEach(([p, q]) => { if (p >= midPrice * (1 - rangePct)) bidVol += q; });
+                asks.forEach(([p, q]) => { if (p <= midPrice * (1 + rangePct)) askVol += q; });
+                exVols[ex] = { bidVol, askVol, total: bidVol + askVol };
+                totalVol += bidVol + askVol;
+            });
+
+            Object.entries(exVols).forEach(([ex, { bidVol, askVol, total }]) => {
+                const cfg = EXCHANGES[ex];
+                const pct = totalVol > 0 ? (total / totalVol * 100).toFixed(1) : 0;
+
+                const card = document.createElement('div');
+                card.className = 'breakdown-card';
+                card.innerHTML = `
+                    <div class="bk-header">
+                        <span class="bk-name" style="color:${cfg.color}">${cfg.name}</span>
+                        <span class="bk-pct">${pct}%</span>
+                    </div>
+                    <div class="bk-bar">
+                        <div class="bk-bar-fill" style="width:${pct}%; background:${cfg.color}"></div>
+                    </div>
+                    <div class="bk-stats">
+                        <span class="bk-bid">Bid: ${bidVol.toFixed(2)}</span>
+                        <span class="bk-ask">Ask: ${askVol.toFixed(2)}</span>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // ============================================================
+        // CONTROLS
+        // ============================================================
+        // Coin selector
+        document.querySelectorAll('[data-coin]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-coin]').forEach(b => b.classList.remove('coin-active'));
+                btn.classList.add('coin-active');
+                currentCoin = btn.dataset.coin;
+                fetchAll();
+            });
+        });
+
+        // Range selector
+        document.querySelectorAll('[data-range]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('[data-range]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentRange = parseInt(btn.dataset.range);
+                if (Object.keys(exchangeData).length > 0) {
+                    renderChart();
+                    renderBreakdown();
+                    updateSummary();
+                }
+            });
+        });
+
+        // Auto refresh
+        document.querySelectorAll('.auto-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.auto-toggle').forEach(b => b.classList.remove('on'));
+                btn.classList.add('on');
+                autoInterval = parseInt(btn.dataset.interval);
+                if (autoTimer) clearInterval(autoTimer);
+                if (autoInterval > 0) {
+                    autoTimer = setInterval(fetchAll, autoInterval * 1000);
+                }
+            });
+        });
+
+        // ============================================================
+        // SHARING
+        // ============================================================
+        function shareTwitter() {
+            const text = `${currentCoin} Spot Orderbook Depth\n거래소별 현물 유동성을 한눈에 확인하세요`;
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(SHARE_URL)}`, '_blank');
+        }
+        function shareKakao() {
+            if (!Kakao.isInitialized()) Kakao.init(KAKAO_KEY);
+            Kakao.Share.sendDefault({
+                objectType: 'feed',
+                content: { title: `${currentCoin} Spot Orderbook Depth`, description: '거래소별 현물 오더북 통합 뎁스 차트', imageUrl: '', link: { mobileWebUrl: SHARE_URL, webUrl: SHARE_URL } },
+                buttons: [{ title: '차트 보기', link: { mobileWebUrl: SHARE_URL, webUrl: SHARE_URL } }]
+            });
+        }
+        function shareTelegram() {
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(SHARE_URL)}&text=${encodeURIComponent(`${currentCoin} Spot Orderbook Depth`)}`, '_blank');
+        }
+        function copyLink() {
+            navigator.clipboard.writeText(SHARE_URL).then(() => {
+                const btn = document.querySelector('.copy-link');
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> 복사됨!';
+                btn.style.borderColor = 'var(--bid-color)'; btn.style.color = 'var(--bid-color)';
+                setTimeout(() => { btn.innerHTML = orig; btn.style.borderColor = ''; btn.style.color = ''; }, 2000);
+            });
+        }
+
+        // ============================================================
+        // BOOT
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('autoOff').classList.add('on');
+            fetchAll();
+        });
+    </script>
+</body>
+</html>
